@@ -1,0 +1,82 @@
+
+buildscript {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven {
+            url = "https://packages.confluent.io/maven/"
+        }
+        maven {
+            url = "https://jitpack.io"
+        }
+
+    }
+
+
+
+}
+plugins {
+    id 'java'
+    id "com.github.imflog.kafka-schema-registry-gradle-plugin" version "1.13.0"
+    id "com.github.davidmc24.gradle.plugin.avro" version  "1.9.1"
+    id "com.avast.gradle.docker-compose" version "0.17.6"
+
+}
+
+group = 'org.example'
+version = '1.0-SNAPSHOT'
+sourceSets {
+    main {
+        resources {
+            // Include Avro schema files in the resources.
+            srcDir 'src/main/avro'
+            include '**/*.avsc'
+        }
+
+    }
+}
+repositories {
+    mavenCentral()
+    jcenter()
+    maven {
+        url "https://packages.confluent.io/maven"
+    }
+}
+schemaRegistry {
+    url = 'http://localhost:8081'
+    register {
+        subject('customer', './src/main/avro/customer.avsc', "AVRO")
+
+    }
+}
+dockerCompose {
+    useComposeFiles = ['docker-compose.yaml']
+
+
+}
+task waitAfterComposeUp {
+    doLast {
+        // Wait time in milliseconds, e.g., 10000 for 10 seconds
+        int waitTime = 10000
+        println "Waiting for $waitTime milliseconds after services are up..."
+        Thread.sleep(waitTime)
+    }
+}
+waitAfterComposeUp.dependsOn 'composeUp'
+
+
+dependencies {
+    implementation 'org.apache.kafka:kafka-clients:3.6.0'
+    implementation 'io.confluent:kafka-streams-avro-serde:7.6.0'
+    implementation 'org.apache.avro:avro:1.11.3'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    // Logging
+    implementation 'org.slf4j:slf4j-api:1.7.30'
+    testImplementation 'ch.qos.logback:logback-classic:1.2.3'
+}
+
+test {
+    useJUnitPlatform()
+}
